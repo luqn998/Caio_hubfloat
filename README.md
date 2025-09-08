@@ -1,3 +1,4 @@
+
 -- Checa se GUI já existe
 if game.CoreGui:FindFirstChild("Caio_hub") then
     game.CoreGui.Caio_hub:Destroy()
@@ -9,7 +10,7 @@ local RunService = game:GetService("RunService")
 -- Variáveis
 local floatActive = false
 local floatDuration = 14
-local floatSpeed = 35 -- 🚀 AGORA 35 blocos/segundo
+local floatSpeed = 39 -- 🚀 Velocidade atualizada para 39 blocos/segundo
 local floatStartTime = 0
 
 -- Criando GUI
