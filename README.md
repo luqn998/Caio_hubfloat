@@ -1,134 +1,216 @@
 
--- Checa se GUI já existe
+-- Checa GUI existente
 if game.CoreGui:FindFirstChild("Caio_hub") then
     game.CoreGui.Caio_hub:Destroy()
 end
 
 local player = game.Players.LocalPlayer
 local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
 
--- Variáveis
-local floatActive = false
-local floatDuration = 14
-local floatSpeed = 39
-local floatStartTime = 0
-local lastUpdate = 0 -- Anti-lag, atualiza a cada 0.05s (~20FPS)
+local positions = {}
+local moveSpeed = 37.11
+local moving = false
+local antiDeath = true
 
--- Criando GUI
+-- Anti-morte supremo
+if player.Character and player.Character:FindFirstChild("Humanoid") then
+    local humanoid = player.Character.Humanoid
+    humanoid.HealthChanged:Connect(function()
+        if antiDeath and humanoid.Health < humanoid.MaxHealth then
+            humanoid.Health = humanoid.MaxHealth
+        end
+    end)
+end
+
+-- GUI futurista
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "Caio_hub"
 screenGui.Parent = game.CoreGui
-screenGui.ResetOnSpawn = false
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 180, 0, 150)
-frame.Position = UDim2.new(0.5, -90, 0.5, -75)
-frame.BackgroundColor3 = Color3.fromRGB(40, 0, 0)
+frame.Size = UDim2.new(0,300,0,450)
+frame.Position = UDim2.new(0.5,-150,0.5,-225)
+frame.BackgroundColor3 = Color3.fromRGB(15,15,20)
 frame.Active = true
 frame.Draggable = true
 frame.Parent = screenGui
 
 local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 12)
+corner.CornerRadius = UDim.new(0,20)
 corner.Parent = frame
 
 local stroke = Instance.new("UIStroke")
-stroke.Thickness = 2
-stroke.Color = Color3.fromRGB(120, 0, 0)
+stroke.Thickness = 3
+stroke.Color = Color3.fromRGB(0,255,180)
 stroke.Parent = frame
 
+-- Título
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0.2, 0)
+title.Size = UDim2.new(1,0,0,40)
 title.BackgroundTransparency = 1
 title.Text = "Caio_hub"
-title.TextColor3 = Color3.fromRGB(255,255,255)
+title.TextColor3 = Color3.fromRGB(0,255,180)
 title.Font = Enum.Font.GothamBold
 title.TextScaled = true
 title.Parent = frame
 
--- Botão Float
-local floatButton = Instance.new("TextButton")
-floatButton.Size = UDim2.new(1, -20, 0.25, -5)
-floatButton.Position = UDim2.new(0, 10, 0.25, 0)
-floatButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-floatButton.Text = "Float OFF"
-floatButton.TextColor3 = Color3.fromRGB(255,255,255)
-floatButton.Font = Enum.Font.GothamBold
-floatButton.TextScaled = true
-floatButton.Parent = frame
+-- Status
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Size = UDim2.new(1,-20,0,30)
+statusLabel.Position = UDim2.new(0,10,1,-40)
+statusLabel.BackgroundTransparency = 1
+statusLabel.Text = "Aguardando..."
+statusLabel.TextColor3 = Color3.fromRGB(0,255,0)
+statusLabel.Font = Enum.Font.GothamBold
+statusLabel.TextScaled = true
+statusLabel.Parent = frame
 
-local cornerBtn = Instance.new("UICorner")
-cornerBtn.CornerRadius = UDim.new(0, 8)
-cornerBtn.Parent = floatButton
+-- Botões de posição
+local buttons, dots = {}, {}
+local function criarBotaoPos(text, ordem)
+    local btnFrame = Instance.new("Frame")
+    btnFrame.Size = UDim2.new(1,-20,0,50)
+    btnFrame.Position = UDim2.new(0,10,0,50 + (ordem-1)*60)
+    btnFrame.BackgroundTransparency = 1
+    btnFrame.Parent = frame
 
--- Botão Kick
-local kickButton = Instance.new("TextButton")
-kickButton.Size = UDim2.new(1, -20, 0.25, -5)
-kickButton.Position = UDim2.new(0, 10, 0.55, 0)
-kickButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-kickButton.Text = "Kick"
-kickButton.TextColor3 = Color3.fromRGB(255,255,255)
-kickButton.Font = Enum.Font.GothamBold
-kickButton.TextScaled = true
-kickButton.Parent = frame
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0.75,0,1,0)
+    btn.Position = UDim2.new(0,0,0,0)
+    btn.BackgroundColor3 = Color3.fromRGB(0,120,255)
+    btn.Text = text
+    btn.TextColor3 = Color3.fromRGB(255,255,255)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextScaled = true
+    btn.Parent = btnFrame
 
-local cornerKick = Instance.new("UICorner")
-cornerKick.CornerRadius = UDim.new(0, 8)
-cornerKick.Parent = kickButton
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0,12)
+    btnCorner.Parent = btn
 
-local timerLabel = Instance.new("TextLabel")
-timerLabel.Size = UDim2.new(1, 0, 0.15, 0)
-timerLabel.Position = UDim2.new(0, 0, 0.85, 0)
-timerLabel.BackgroundTransparency = 1
-timerLabel.Text = ""
-timerLabel.TextColor3 = Color3.fromRGB(255,255,255)
-timerLabel.Font = Enum.Font.GothamBold
-timerLabel.TextScaled = true
-timerLabel.Parent = frame
+    local dot = Instance.new("Frame")
+    dot.Size = UDim2.new(0,20,0,20)
+    dot.Position = UDim2.new(0.8,0,0.1,0)
+    dot.BackgroundColor3 = Color3.fromRGB(100,0,0)
+    dot.Parent = btnFrame
+    local dotCorner = Instance.new("UICorner")
+    dotCorner.CornerRadius = UDim.new(1,0)
+    dotCorner.Parent = dot
 
--- Loop de movimento com anti-lag
-RunService.Heartbeat:Connect(function(delta)
-    if floatActive and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-        if tick() - lastUpdate < 0.05 then return end
-        lastUpdate = tick()
+    local dotStroke = Instance.new("UIStroke")
+    dotStroke.Thickness = 2
+    dotStroke.Color = Color3.fromRGB(0,255,180)
+    dotStroke.Parent = dot
 
-        local hrp = player.Character.HumanoidRootPart
-        local cam = workspace.CurrentCamera
-        hrp.Velocity = (cam.CFrame.LookVector * floatSpeed)
-        
-        local elapsed = tick() - floatStartTime
-        local remaining = math.max(0, math.floor(floatDuration - elapsed))
-        timerLabel.Text = tostring(remaining).."s"
-
-        if elapsed >= floatDuration then
-            floatActive = false
-            hrp.Velocity = Vector3.zero
-            floatButton.Text = "Float OFF"
-            floatButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-            timerLabel.Text = ""
+    spawn(function()
+        while true do
+            if dot.BackgroundColor3 == Color3.fromRGB(0,255,0) then
+                for i=1,10 do
+                    dotStroke.Transparency = i/10
+                    task.wait(0.05)
+                end
+                for i=10,1,-1 do
+                    dotStroke.Transparency = i/10
+                    task.wait(0.05)
+                end
+            else
+                dotStroke.Transparency = 1
+                task.wait(0.1)
+            end
         end
-    end
-end)
+    end)
 
--- Função Float
-floatButton.MouseButton1Click:Connect(function()
-    if not floatActive then
-        floatActive = true
-        floatStartTime = tick()
-        floatButton.Text = "Float ON"
-        floatButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
-    else
-        floatActive = false
+    btn.MouseButton1Click:Connect(function()
         if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            player.Character.HumanoidRootPart.Velocity = Vector3.zero
+            positions[ordem] = player.Character.HumanoidRootPart.Position
+            dot.BackgroundColor3 = Color3.fromRGB(0,255,0)
+            statusLabel.Text = "Posição "..ordem.." marcada!"
         end
-        floatButton.Text = "Float OFF"
-        floatButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-        timerLabel.Text = ""
+    end)
+
+    buttons[ordem] = btn
+    dots[ordem] = dot
+end
+
+for i=1,5 do
+    criarBotaoPos("Marcar Posição "..i,i)
+end
+
+-- Botão Teleguiado
+local teleBtn = Instance.new("TextButton")
+teleBtn.Size = UDim2.new(0.9,0,0,50)
+teleBtn.Position = UDim2.new(0.05,0,0.7,0)
+teleBtn.BackgroundColor3 = Color3.fromRGB(0,180,255)
+teleBtn.Text = "Teleguiado"
+teleBtn.TextColor3 = Color3.fromRGB(255,255,255)
+teleBtn.Font = Enum.Font.GothamBold
+teleBtn.TextScaled = true
+teleBtn.Parent = frame
+
+local teleCorner = Instance.new("UICorner")
+teleCorner.CornerRadius = UDim.new(0,15)
+teleCorner.Parent = teleBtn
+
+-- Botão remover posições
+local removeBtn = Instance.new("TextButton")
+removeBtn.Size = UDim2.new(0.9,0,0,50)
+removeBtn.Position = UDim2.new(0.05,0,0.82,0)
+removeBtn.BackgroundColor3 = Color3.fromRGB(255,50,50)
+removeBtn.Text = "Remover Posições"
+removeBtn.TextColor3 = Color3.fromRGB(255,255,255)
+removeBtn.Font = Enum.Font.GothamBold
+removeBtn.TextScaled = true
+removeBtn.Parent = frame
+
+local removeCorner = Instance.new("UICorner")
+removeCorner.CornerRadius = UDim.new(0,15)
+removeCorner.Parent = removeBtn
+
+removeBtn.MouseButton1Click:Connect(function()
+    positions = {}
+    for i=1,5 do
+        dots[i].BackgroundColor3 = Color3.fromRGB(100,0,0)
     end
+    statusLabel.Text = "Todas posições removidas!"
 end)
 
--- Função Kick
-kickButton.MouseButton1Click:Connect(function()
-    player:Kick("Você foi kikado por Caio_hub")
-end)
+-- Função teleguiado frame-a-frame, respeitando colisão, contornando paredes
+local function teleguiado()
+    if moving then return end
+    moving = true
+    local char = player.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then moving=false return end
+    local hrp = char.HumanoidRootPart
+    local humanoid = char:FindFirstChild("Humanoid")
+    if not humanoid then moving=false return end
+
+    for i=1,5 do
+        if positions[i] then
+            statusLabel.Text = "Indo para Posição "..i.."..."
+            local target = positions[i]
+            while (hrp.Position - target).Magnitude > 1 do
+                local delta = RunService.RenderStepped:Wait()
+                local dir = (target - hrp.Position).Unit
+
+                -- Raycast para frente
+                local ray = Ray.new(hrp.Position, dir*2)
+                local hit, pos = Workspace:FindPartOnRayWithIgnoreList(ray, {char})
+                local step = moveSpeed * delta
+
+                if hit then
+                    -- diminui passo para não atravessar a parede
+                    step = step * 0.5
+                end
+
+                hrp.CFrame = hrp.CFrame + dir * step
+            end
+            statusLabel.Text = "Chegou Posição "..i
+            task.wait(0.05)
+        end
+    end
+    statusLabel.Text = "Teleguiado finalizado!"
+    moving = false
+end
+
+teleBtn.MouseButton1Click:Connect(teleguiado)
