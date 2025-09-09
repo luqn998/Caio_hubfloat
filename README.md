@@ -1,3 +1,4 @@
+
 -- Checa se GUI já existe
 if game.CoreGui:FindFirstChild("Caio_hub") then
     game.CoreGui.Caio_hub:Destroy()
