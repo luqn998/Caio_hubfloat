@@ -1,4 +1,3 @@
-
 -- Checa se GUI já existe
 if game.CoreGui:FindFirstChild("Caio_hub") then
     game.CoreGui.Caio_hub:Destroy()
@@ -6,12 +5,14 @@ end
 
 local player = game.Players.LocalPlayer
 local RunService = game:GetService("RunService")
+local PhysicsService = game:GetService("PhysicsService")
 
 -- Variáveis
 local floatActive = false
 local floatDuration = 14
-local floatSpeed = 39 -- 🚀 Velocidade atualizada para 39 blocos/segundo
+local floatSpeed = 39 -- 🚀 Velocidade atualizada
 local floatStartTime = 0
+local ragdolling = false
 
 -- Criando GUI
 local screenGui = Instance.new("ScreenGui")
@@ -69,6 +70,42 @@ timerLabel.Font = Enum.Font.GothamBold
 timerLabel.TextScaled = true
 timerLabel.Parent = frame
 
+-- Função de ragdoll
+local function setRagdoll(state)
+    if not player.Character then return end
+    local hum = player.Character:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
+
+    if state and not ragdolling then
+        ragdolling = true
+        hum:ChangeState(Enum.HumanoidStateType.Physics)
+        -- Adiciona giro aleatório
+        if player.Character:FindFirstChild("HumanoidRootPart") then
+            local hrp = player.Character.HumanoidRootPart
+            hrp.RotVelocity = Vector3.new(
+                math.random(-20,20),
+                math.random(-20,20),
+                math.random(-20,20)
+            )
+        end
+    elseif not state and ragdolling then
+        ragdolling = false
+        hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+    end
+end
+
+-- Detecta colisão
+local function checkCollision(hrp)
+    local ray = Ray.new(hrp.Position, hrp.Velocity.Unit * 3)
+    local part, pos = workspace:FindPartOnRay(ray, player.Character, false, true)
+    if part and part.CanCollide then
+        setRagdoll(true)
+        task.delay(2, function() -- ⏳ 2s depois levanta
+            setRagdoll(false)
+        end)
+    end
+end
+
 -- Anti-Morte Supremo
 local function antiMorte()
     player.CharacterAdded:Connect(function(char)
@@ -92,6 +129,9 @@ RunService.Heartbeat:Connect(function(delta)
         local hrp = player.Character.HumanoidRootPart
         local cam = workspace.CurrentCamera
         hrp.Velocity = cam.CFrame.LookVector * floatSpeed
+
+        -- Detecta colisão e ativa ragdoll
+        checkCollision(hrp)
 
         -- Timer
         local elapsed = tick() - floatStartTime
