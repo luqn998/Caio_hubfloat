@@ -10,7 +10,7 @@ local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
 local floatActive = false
-local floatSpeed = 35 -- velocidade em blocos por segundo
+local floatSpeed = 40 -- velocidade em blocos por segundo
 local floatDuration = 13 -- duração do float em segundos
 local floatStartTime = 0
 local lastUpdate = 0
@@ -47,7 +47,7 @@ stroke.Thickness = 3
 stroke.Color = Color3.fromRGB(255,0,0)
 stroke.Parent = frame
 
--- Função para arco-íris
+-- Função arco-íris
 local hue = 0
 RunService.RenderStepped:Connect(function()
     hue = (hue + 1) % 360
@@ -57,6 +57,7 @@ end)
 -- Título
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1,0,0,40)
+title.Position = UDim2.new(0,0,0,0)
 title.BackgroundTransparency = 1
 title.Text = "Caio_hub"
 title.Font = Enum.Font.GothamBold
@@ -100,7 +101,7 @@ timerLabel.Font = Enum.Font.GothamBold
 timerLabel.TextScaled = true
 timerLabel.Parent = frame
 
--- Loop de movimento
+-- Loop de movimento do float
 RunService.Heartbeat:Connect(function(delta)
     if floatActive and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
         if tick() - lastUpdate < 0.03 then return end -- atualiza ~30FPS
