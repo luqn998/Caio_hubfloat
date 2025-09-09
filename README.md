@@ -1,4 +1,5 @@
 
+
 -- Checa GUI existente
 if game.CoreGui:FindFirstChild("Caio_hub") then
     game.CoreGui.Caio_hub:Destroy()
@@ -9,7 +10,7 @@ local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
 local floatActive = false
-local floatSpeed = 37 -- velocidade em blocos por segundo
+local floatSpeed = 35 -- velocidade em blocos por segundo
 local floatDuration = 13 -- duração do float em segundos
 local floatStartTime = 0
 local lastUpdate = 0
@@ -24,7 +25,7 @@ if player.Character and player.Character:FindFirstChild("Humanoid") then
     end)
 end
 
--- GUI futurista
+-- GUI futurista arco-íris neon
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "Caio_hub"
 screenGui.Parent = game.CoreGui
@@ -42,25 +43,37 @@ corner.CornerRadius = UDim.new(0,15)
 corner.Parent = frame
 
 local stroke = Instance.new("UIStroke")
-stroke.Thickness = 2
-stroke.Color = Color3.fromRGB(0,255,180)
+stroke.Thickness = 3
+stroke.Color = Color3.fromRGB(255,0,0)
 stroke.Parent = frame
+
+-- Função para arco-íris
+local hue = 0
+RunService.RenderStepped:Connect(function()
+    hue = (hue + 1) % 360
+    stroke.Color = Color3.fromHSV(hue/360,1,1)
+end)
 
 -- Título
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1,0,0,40)
 title.BackgroundTransparency = 1
 title.Text = "Caio_hub"
-title.TextColor3 = Color3.fromRGB(0,255,180)
 title.Font = Enum.Font.GothamBold
 title.TextScaled = true
 title.Parent = frame
+
+-- Loop título arco-íris
+RunService.RenderStepped:Connect(function()
+    hue = (hue + 0.5) % 360
+    title.TextColor3 = Color3.fromHSV(hue/360,1,1)
+end)
 
 -- Botão Float
 local floatButton = Instance.new("TextButton")
 floatButton.Size = UDim2.new(0.9,0,0,50)
 floatButton.Position = UDim2.new(0.05,0,0.3,0)
-floatButton.BackgroundColor3 = Color3.fromRGB(0,120,255)
+floatButton.BackgroundColor3 = Color3.fromRGB(255,0,0)
 floatButton.Text = "Float OFF"
 floatButton.TextColor3 = Color3.fromRGB(255,255,255)
 floatButton.Font = Enum.Font.GothamBold
@@ -71,13 +84,18 @@ local floatCorner = Instance.new("UICorner")
 floatCorner.CornerRadius = UDim.new(0,12)
 floatCorner.Parent = floatButton
 
+-- Loop botão arco-íris
+RunService.RenderStepped:Connect(function()
+    hue = (hue + 0.7) % 360
+    floatButton.BackgroundColor3 = Color3.fromHSV(hue/360,1,1)
+end)
+
 -- Timer
 local timerLabel = Instance.new("TextLabel")
 timerLabel.Size = UDim2.new(1,0,0,30)
 timerLabel.Position = UDim2.new(0,0,0.75,0)
 timerLabel.BackgroundTransparency = 1
 timerLabel.Text = ""
-timerLabel.TextColor3 = Color3.fromRGB(0,255,0)
 timerLabel.Font = Enum.Font.GothamBold
 timerLabel.TextScaled = true
 timerLabel.Parent = frame
@@ -103,7 +121,6 @@ RunService.Heartbeat:Connect(function(delta)
             floatActive = false
             hrp.Velocity = Vector3.zero
             floatButton.Text = "Float OFF"
-            floatButton.BackgroundColor3 = Color3.fromRGB(0,120,255)
             timerLabel.Text = ""
         end
     end
@@ -115,14 +132,12 @@ floatButton.MouseButton1Click:Connect(function()
         floatActive = true
         floatStartTime = tick()
         floatButton.Text = "Float ON"
-        floatButton.BackgroundColor3 = Color3.fromRGB(0,255,0)
     else
         floatActive = false
         if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
             player.Character.HumanoidRootPart.Velocity = Vector3.zero
         end
         floatButton.Text = "Float OFF"
-        floatButton.BackgroundColor3 = Color3.fromRGB(0,120,255)
         timerLabel.Text = ""
     end
 end)
