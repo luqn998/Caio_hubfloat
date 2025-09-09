@@ -5,14 +5,13 @@ end
 
 local player = game.Players.LocalPlayer
 local RunService = game:GetService("RunService")
-local PhysicsService = game:GetService("PhysicsService")
 
 -- Variáveis
 local floatActive = false
 local floatDuration = 14
-local floatSpeed = 39 -- 🚀 Velocidade atualizada
+local floatSpeed = 39
 local floatStartTime = 0
-local ragdolling = false
+local lastUpdate = 0 -- Anti-lag, atualiza a cada 0.05s (~20FPS)
 
 -- Criando GUI
 local screenGui = Instance.new("ScreenGui")
@@ -70,69 +69,18 @@ timerLabel.Font = Enum.Font.GothamBold
 timerLabel.TextScaled = true
 timerLabel.Parent = frame
 
--- Função de ragdoll
-local function setRagdoll(state)
-    if not player.Character then return end
-    local hum = player.Character:FindFirstChildOfClass("Humanoid")
-    if not hum then return end
-
-    if state and not ragdolling then
-        ragdolling = true
-        hum:ChangeState(Enum.HumanoidStateType.Physics)
-        -- Adiciona giro aleatório
-        if player.Character:FindFirstChild("HumanoidRootPart") then
-            local hrp = player.Character.HumanoidRootPart
-            hrp.RotVelocity = Vector3.new(
-                math.random(-20,20),
-                math.random(-20,20),
-                math.random(-20,20)
-            )
-        end
-    elseif not state and ragdolling then
-        ragdolling = false
-        hum:ChangeState(Enum.HumanoidStateType.GettingUp)
-    end
-end
-
--- Detecta colisão
-local function checkCollision(hrp)
-    local ray = Ray.new(hrp.Position, hrp.Velocity.Unit * 3)
-    local part, pos = workspace:FindPartOnRay(ray, player.Character, false, true)
-    if part and part.CanCollide then
-        setRagdoll(true)
-        task.delay(2, function() -- ⏳ 2s depois levanta
-            setRagdoll(false)
-        end)
-    end
-end
-
--- Anti-Morte Supremo
-local function antiMorte()
-    player.CharacterAdded:Connect(function(char)
-        local hum = char:WaitForChild("Humanoid")
-        hum.Died:Connect(function()
-            hum.Health = hum.MaxHealth
-        end)
-    end)
-    if player.Character then
-        local hum = player.Character:WaitForChild("Humanoid")
-        hum.Died:Connect(function()
-            hum.Health = hum.MaxHealth
-        end)
-    end
-end
-antiMorte()
-
--- Loop de movimento
+-- Loop de movimento com anti-lag
 RunService.Heartbeat:Connect(function(delta)
     if floatActive and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        -- Limita atualizações para reduzir lag
+        if tick() - lastUpdate < 0.05 then return end
+        lastUpdate = tick()
+
         local hrp = player.Character.HumanoidRootPart
         local cam = workspace.CurrentCamera
-        hrp.Velocity = cam.CFrame.LookVector * floatSpeed
-
-        -- Detecta colisão e ativa ragdoll
-        checkCollision(hrp)
-
+        -- Movimento suavizado (anti-detect)
+        hrp.Velocity = (cam.CFrame.LookVector * floatSpeed)
+        
         -- Timer
         local elapsed = tick() - floatStartTime
         local remaining = math.max(0, math.floor(floatDuration - elapsed))
@@ -148,7 +96,7 @@ RunService.Heartbeat:Connect(function(delta)
     end
 end)
 
--- Botão
+-- Botão Float
 floatButton.MouseButton1Click:Connect(function()
     if not floatActive then
         floatActive = true
