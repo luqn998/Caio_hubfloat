@@ -1,5 +1,3 @@
-
-
 -- Checa GUI existente
 if game.CoreGui:FindFirstChild("Caio_hub") then
     game.CoreGui.Caio_hub:Destroy()
@@ -8,12 +6,6 @@ end
 local player = game.Players.LocalPlayer
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
-
-local floatActive = false
-local floatSpeed = 40 -- velocidade em blocos por segundo
-local floatDuration = 13 -- duração do float em segundos
-local floatStartTime = 0
-local lastUpdate = 0
 
 -- Anti-morte supremo
 if player.Character and player.Character:FindFirstChild("Humanoid") then
@@ -24,6 +16,12 @@ if player.Character and player.Character:FindFirstChild("Humanoid") then
         end
     end)
 end
+
+-- Variáveis plataforma
+local platformPart
+local platformActive = false
+local targetY = 0
+local hue = 0
 
 -- GUI futurista arco-íris neon
 local screenGui = Instance.new("ScreenGui")
@@ -47,98 +45,71 @@ stroke.Thickness = 3
 stroke.Color = Color3.fromRGB(255,0,0)
 stroke.Parent = frame
 
--- Função arco-íris
-local hue = 0
-RunService.RenderStepped:Connect(function()
-    hue = (hue + 1) % 360
-    stroke.Color = Color3.fromHSV(hue/360,1,1)
-end)
-
--- Título
+-- Título animado arco-íris
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1,0,0,40)
 title.Position = UDim2.new(0,0,0,0)
 title.BackgroundTransparency = 1
-title.Text = "Caio_hub"
+title.Text = "Caio_hub - Plataforma"
 title.Font = Enum.Font.GothamBold
 title.TextScaled = true
 title.Parent = frame
 
--- Loop título arco-íris
-RunService.RenderStepped:Connect(function()
-    hue = (hue + 0.5) % 360
-    title.TextColor3 = Color3.fromHSV(hue/360,1,1)
-end)
-
--- Botão Float
-local floatButton = Instance.new("TextButton")
-floatButton.Size = UDim2.new(0.9,0,0,50)
-floatButton.Position = UDim2.new(0.05,0,0.3,0)
-floatButton.BackgroundColor3 = Color3.fromRGB(255,0,0)
-floatButton.Text = "Float OFF"
-floatButton.TextColor3 = Color3.fromRGB(255,255,255)
-floatButton.Font = Enum.Font.GothamBold
-floatButton.TextScaled = true
-floatButton.Parent = frame
+-- Botão Plataforma (Elevador)
+local platformButton = Instance.new("TextButton")
+platformButton.Size = UDim2.new(0.9,0,0,50)
+platformButton.Position = UDim2.new(0.05,0,0.3,0)
+platformButton.BackgroundColor3 = Color3.fromRGB(255,0,0)
+platformButton.Text = "Plataforma OFF"
+platformButton.TextColor3 = Color3.fromRGB(255,255,255)
+platformButton.Font = Enum.Font.GothamBold
+platformButton.TextScaled = true
+platformButton.Parent = frame
 
 local floatCorner = Instance.new("UICorner")
 floatCorner.CornerRadius = UDim.new(0,12)
-floatCorner.Parent = floatButton
+floatCorner.Parent = platformButton
 
--- Loop botão arco-íris
+-- Loop arco-íris para frame, título e botão
 RunService.RenderStepped:Connect(function()
-    hue = (hue + 0.7) % 360
-    floatButton.BackgroundColor3 = Color3.fromHSV(hue/360,1,1)
+    hue = (hue + 1) % 360
+    local color = Color3.fromHSV(hue/360,1,1)
+    stroke.Color = color
+    title.TextColor3 = color
+    platformButton.BackgroundColor3 = color
 end)
 
--- Timer
-local timerLabel = Instance.new("TextLabel")
-timerLabel.Size = UDim2.new(1,0,0,30)
-timerLabel.Position = UDim2.new(0,0,0.75,0)
-timerLabel.BackgroundTransparency = 1
-timerLabel.Text = ""
-timerLabel.Font = Enum.Font.GothamBold
-timerLabel.TextScaled = true
-timerLabel.Parent = frame
-
--- Loop de movimento do float
-RunService.Heartbeat:Connect(function(delta)
-    if floatActive and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-        if tick() - lastUpdate < 0.03 then return end -- atualiza ~30FPS
-        lastUpdate = tick()
-
-        local hrp = player.Character.HumanoidRootPart
-        local cam = workspace.CurrentCamera
-
-        -- Move na direção da câmera
-        hrp.Velocity = cam.CFrame.LookVector * floatSpeed
-
-        -- Timer
-        local elapsed = tick() - floatStartTime
-        local remaining = math.max(0, math.floor(floatDuration - elapsed))
-        timerLabel.Text = tostring(remaining).."s"
-
-        if elapsed >= floatDuration then
-            floatActive = false
-            hrp.Velocity = Vector3.zero
-            floatButton.Text = "Float OFF"
-            timerLabel.Text = ""
+-- Função ativar/desativar plataforma
+platformButton.MouseButton1Click:Connect(function()
+    platformActive = not platformActive
+    if platformActive then
+        platformButton.Text = "Plataforma ON"
+        if not platformPart then
+            platformPart = Instance.new("Part")
+            platformPart.Size = Vector3.new(20,1,20)
+            platformPart.Anchored = true
+            platformPart.CanCollide = true
+            platformPart.Material = Enum.Material.Neon
+            platformPart.BrickColor = BrickColor.new("Bright green")
+            platformPart.Transparency = 0.6
+            platformPart.Parent = Workspace
+        end
+    else
+        platformButton.Text = "Plataforma OFF"
+        if platformPart then
+            platformPart:Destroy()
+            platformPart = nil
         end
     end
 end)
 
--- Função Float
-floatButton.MouseButton1Click:Connect(function()
-    if not floatActive then
-        floatActive = true
-        floatStartTime = tick()
-        floatButton.Text = "Float ON"
-    else
-        floatActive = false
-        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            player.Character.HumanoidRootPart.Velocity = Vector3.zero
-        end
-        floatButton.Text = "Float OFF"
-        timerLabel.Text = ""
+-- Atualiza posição da plataforma suavemente (Elevador)
+RunService.RenderStepped:Connect(function()
+    if platformActive and platformPart and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        local hrp = player.Character.HumanoidRootPart
+        targetY = hrp.Position.Y - 3
+        local currentPos = platformPart.Position
+        local newY = currentPos.Y + (targetY - currentPos.Y) * 0.2
+        platformPart.Position = Vector3.new(hrp.Position.X, newY, hrp.Position.Z)
     end
 end)
